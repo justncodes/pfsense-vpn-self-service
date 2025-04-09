@@ -1,0 +1,27 @@
+import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
+
+class Config:
+    # Flask configuration
+    SECRET_KEY = os.getenv('FLASK_SECRET_KEY', os.urandom(24))
+    DEBUG = os.getenv('FLASK_ENV', 'production') == 'development'
+    
+    # pfSense configuration
+    PFSENSE_IP = os.getenv('PFSENSE_IP', '10.1.1.1')
+    PFSENSE_API_URL = f"https://{PFSENSE_IP}/api/v2"
+    PFSENSE_API_KEY = os.getenv('PFSENSE_API_KEY', '')
+    PFSENSE_API_SECRET = os.getenv('PFSENSE_API_SECRET', '')
+    
+    # WireGuard configuration
+    VPN_SUBNET = os.getenv('VPN_SUBNET', '10.255.0.0/24')
+    ROUTE_NETWORK = os.getenv('ROUTE_NETWORK', '10.0.0.0/8')
+    DNS_SERVERS = os.getenv('DNS_SERVERS', '8.8.8.8,8.8.4.4').split(',')
+    SERVER_PUBLIC_KEY = os.getenv('SERVER_PUBLIC_KEY', '')
+    SERVER_ENDPOINT = os.getenv('SERVER_ENDPOINT', 'pfsense.domain.com:51820')
+    
+    # Authentication
+    DEMO_USER = os.getenv('DEMO_USER', 'demo')
+    DEMO_PASSWORD = os.getenv('DEMO_PASSWORD', 'password')
