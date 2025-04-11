@@ -191,9 +191,11 @@ def create_wireguard_peer(public_key, client_ip, description):
         response = requests.post(
             url, 
             json=payload,
-            auth=(PFSENSE_API_KEY, PFSENSE_API_SECRET),
             verify=False,
-            headers={'Content-Type': 'application/json'}
+            headers={
+                'Content-Type': 'application/json',
+                'X-API-Key': PFSENSE_API_KEY
+            }
         )
         
         if response.status_code == 200:
@@ -214,10 +216,13 @@ def delete_wireguard_peer(peer_id):
         # Skip SSL verification due to self-signed certificate
         response = requests.delete(
             url,
-            auth=(PFSENSE_API_KEY, PFSENSE_API_SECRET),
-            verify=False
+            verify=False,
+            headers={
+                'Content-Type': 'application/json',
+                'X-API-Key': PFSENSE_API_KEY
+            }
         )
-        
+
         return response.status_code == 200
     except requests.exceptions.RequestException as e:
         print(f"Request error: {e}")
