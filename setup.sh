@@ -6,6 +6,23 @@ set -e
 echo "Setting up WireGuard VPN Self-Service Portal"
 echo "---------------------------------------"
 
+# Check for python3-venv
+if ! python3 -m venv --help &> /dev/null; then
+    echo "Python venv module not available."
+    if [ -f /etc/debian_version ]; then
+        echo "On Debian/Ubuntu, you need to install python3-venv package:"
+        echo "sudo apt install python3-venv"
+        
+        # Try to detect Python version and suggest the right package
+        PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1-2)
+        if [ -n "$PYTHON_VERSION" ]; then
+            echo "Or for your specific Python version:"
+            echo "sudo apt install python${PYTHON_VERSION}-venv"
+        fi
+    fi
+    exit 1
+fi
+
 # Create virtual environment
 echo "Creating virtual environment..."
 python3 -m venv venv

@@ -1,5 +1,25 @@
 #!/bin/bash
 
+# Create error log function
+log_error() {
+    echo "ERROR: $1" >&2
+    echo "Please check the error message above and try again."
+    exit 1
+}
+
+# Create error log function
+log_error() {
+    echo "ERROR: $1" >&2
+    echo "Please check the error message above and try again."
+    exit 1
+}
+
+# Check if bash is available
+if [ -z "$BASH_VERSION" ]; then
+    echo "This script requires bash to run. Please use bash to execute this script."
+    exit 1
+fi
+
 # Exit on error
 set -e
 
@@ -14,6 +34,13 @@ if [ -f /etc/debian_version ]; then
     # Debian/Ubuntu
     PKG_MANAGER="apt"
     echo "Detected Debian/Ubuntu-based system"
+    # Detect specific version for venv package name
+    PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1-2)
+    PYTHON_VENV_PKG="python3-venv"
+    if [ -n "$PYTHON_VERSION" ]; then
+        PYTHON_VENV_PKG="python${PYTHON_VERSION}-venv"
+        echo "Detected Python version: ${PYTHON_VERSION}, will use package: ${PYTHON_VENV_PKG}"
+    fi
 elif [ -f /etc/redhat-release ]; then
     # RHEL/CentOS/Fedora
     PKG_MANAGER="yum"
@@ -48,7 +75,19 @@ install_dependencies() {
         # Check for Python3
         if ! command -v python3 &> /dev/null; then
             echo "Installing Python 3..."
-            sudo apt install -y python3 python3-pip python3-venv
+            sudo apt install -y python3 python3-pip
+        fi
+        
+        # Check for Python3 venv
+        if ! dpkg -l | grep -q python3-venv; then
+            echo "Installing Python 3 venv..."
+            sudo apt install -y $PYTHON_VENV_PKG
+            
+            # If that fails, try the generic package
+            if [ $? -ne 0 ]; then
+                echo "Failed to install $PYTHON_VENV_PKG, trying python3-venv instead..."
+                sudo apt install -y python3-venv
+            fi
         fi
         
         # Check for Node.js
@@ -180,10 +219,9 @@ cd "$INSTALL_DIR"
 if [ -f "setup.sh" ]; then
     echo "Running setup script..."
     chmod +x setup.sh
-    ./setup.sh
+    ./setup.sh || log_error "Setup script failed. Please check the error message above."
 else
-    echo "setup.sh not found in the repository. Please check the repository structure."
-    exit 1
+    log_error "setup.sh not found in the repository. Please check the repository structure."
 fi
 
 echo ""
