@@ -7,13 +7,6 @@ log_error() {
     exit 1
 }
 
-# Create error log function
-log_error() {
-    echo "ERROR: $1" >&2
-    echo "Please check the error message above and try again."
-    exit 1
-}
-
 # Check if bash is available
 if [ -z "$BASH_VERSION" ]; then
     echo "This script requires bash to run. Please use bash to execute this script."
@@ -23,8 +16,8 @@ fi
 # Exit on error
 set -e
 
-echo "WireGuard VPN Self-Service Portal - Bootstrap Installation"
-echo "========================================================"
+echo "WireGuard VPN Self-Service Portal - Installation"
+echo "==============================================="
 echo "This script will install all dependencies, clone the repository,"
 echo "and set up the application with a single command."
 echo ""
@@ -194,73 +187,117 @@ if [ -d "$INSTALL_DIR" ]; then
     if [ "$CONFIRM" = "y" ]; then
         echo "Removing existing directory..."
         rm -rf "$INSTALL_DIR"
+        
+        echo "Cloning repository from $REPO_URL..."
+        git clone "$REPO_URL" "$INSTALL_DIR" || log_error "Failed to clone the repository. Please check your internet connection and the repository URL."
     else
-        echo "Skipping clone, using existing directory."
-        cd "$INSTALL_DIR"
-        # Skip to setup script
-        if [ -f "setup.sh" ]; then
-            echo "Running setup script..."
-            chmod +x setup.sh
-            ./setup.sh
-            echo "Bootstrap completed successfully!"
-            exit 0
-        else
-            echo "setup.sh not found in the existing directory. Please check the repository."
-            exit 1
+        echo "Using existing directory."
+    fi
+else
+    echo "Cloning repository from $REPO_URL..."
+    git clone "$REPO_URL" "$INSTALL_DIR" || log_error "Failed to clone the repository. Please check your internet connection and the repository URL."
+fi
+
+# Change to the repository directory
+cd "$INSTALL_DIR" || log_error "Failed to change to the repository directory."
+
+# Check for python3-venv
+if ! python3 -m venv --help &> /dev/null; then
+    echo "Python venv module not available."
+    if [ -f /etc/debian_version ]; then
+        echo "On Debian/Ubuntu, you need to install python3-venv package:"
+        echo "sudo apt install python3-venv"
+        
+        # Try to detect Python version and suggest the right package
+        PYTHON_VERSION=$(python3 --version 2>&1 | cut -d' ' -f2 | cut -d'.' -f1-2)
+        if [ -n "$PYTHON_VERSION" ]; then
+            echo "Or for your specific Python version:"
+            echo "sudo apt install python${PYTHON_VERSION}-venv"
         fi
     fi
+    exit 1
 fi
 
-echo "Cloning repository from $REPO_URL..."
-git clone "$REPO_URL" "$INSTALL_DIR"
-cd "$INSTALL_DIR"
+# Create virtual environment
+echo "Creating virtual environment..."
+python3 -m venv venv || log_error "Failed to create virtual environment."
 
-# Run the setup script
-if [ -f "setup.sh" ]; then
-    echo "Running setup script..."
-    chmod +x setup.sh
-    ./setup.sh || log_error "Setup script failed. Please check the error message above."
-else
-    log_error "setup.sh not found in the repository. Please check the repository structure."
-fi
-
-echo ""
-echo "Bootstrap completed successfully!"
-echo ""
-echo "To run the application, follow these steps:"
-echo ""
-echo "1. Edit the .env file with your actual configuration:"
-echo "   nano .env"
-echo ""
-echo "2. To run in development mode (with hot-reloading):"
-echo "   a. Start the Flask backend:"
+# Activate virtual environment based on OS
 if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
-    echo "      venv\\Scripts\\activate"
+    # Windows
+    source venv/Scripts/activate || log_error "Failed to activate virtual environment on Windows."
 else
-    echo "      source venv/bin/activate"
+    # Unix-like
+    source venv/bin/activate || log_error "Failed to activate virtual environment."
 fi
-echo "      python app.py"
+
+# Install backend dependencies
+echo "Installing backend dependencies..."
+pip install flask flask-cors requests python-dotenv || log_error "Failed to install backend dependencies."
+
+# Create .env file from .env.example
+echo "Creating .env file from .env.example..."
+if [ -f ".env.example" ]; then
+    # Copy .env.example to .env
+    cp .env.example .env || log_error "Failed to create .env file from .env.example."
+    
+    # Generate a random secret key and replace the placeholder in .env
+    FLASK_SECRET_KEY=$(python3 -c 'import secrets; print(secrets.token_hex(24))')
+    sed -i.bak "s/FLASK_SECRET_KEY=generate-a-secure-random-key/FLASK_SECRET_KEY=$FLASK_SECRET_KEY/" .env
+    rm -f .env.bak  # Remove backup file created by sed on some systems
+    
+    echo "Created .env file from the example template. Please edit it with your actual configuration."
+else
+    log_error ".env.example file not found. Configuration setup failed."
+fi
+
+# Create config.py file based on the example if it doesn't exist and if example exists
+if [ ! -f "config.py" ] && [ -f "config.py.example" ]; then
+    echo "Creating config.py file from example..."
+    cp config.py.example config.py || log_error "Failed to create config.py file from example."
+fi
+
+# Create data directory for persistence
+mkdir -p data || log_error "Failed to create data directory."
+
+# Set up frontend
+echo "Setting up frontend..."
+cd frontend || log_error "Failed to navigate to frontend directory."
+
+# Install dependencies
+echo "Installing frontend dependencies..."
+npm install || log_error "Failed to install frontend dependencies."
+
+# Build frontend
+echo "Building frontend..."
+npm run build || log_error "Failed to build frontend."
+
+# Return to root directory
+cd ..
+
 echo ""
+echo "Installation completed successfully!"
+echo ""
+echo "IMPORTANT: Edit the .env file with your actual configuration before running at:"
+echo "  $(pwd)/.env"
+echo ""
+echo "To start the application:"
+echo ""
+echo "1. Navigate to the project directory and activate the virtual environment:"
+echo "   cd $(pwd)"
+if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
+    echo "   venv\\Scripts\\activate"
+else
+    echo "   source venv/bin/activate"
+fi
+echo ""
+echo "2. Start the application in production mode:"
+echo "   python app.py"
+echo "   Then access the application at http://localhost:5000"
+echo ""
+echo "3. For development only (optional):"
+echo "   a. Start the Flask backend as described above"
 echo "   b. In a separate terminal, start the React development server:"
-echo "      cd frontend"
+echo "      cd $(pwd)/frontend"
 echo "      npm start"
-echo ""
-echo "   c. Access the application:"
-echo "      - Frontend: http://localhost:3000"
-echo "      - Backend API: http://localhost:5000/api/..."
-echo ""
-echo "3. To run in production mode:"
-echo "   a. Build the frontend (if not already built):"
-echo "      cd frontend"
-echo "      npm run build"
-echo "      cd .."
-echo ""
-echo "   b. Run the Flask server:"
-if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" || "$OSTYPE" == "cygwin" ]]; then
-    echo "      venv\\Scripts\\activate"
-else
-    echo "      source venv/bin/activate"
-fi
-echo "      python app.py"
-echo ""
-echo "   c. Access the application at http://localhost:5000"
+echo "   c. Access the development frontend at http://localhost:3000"

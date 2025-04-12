@@ -5,20 +5,20 @@ You can install the WireGuard VPN Self-Service Portal with a single command:
 ## Linux / macOS
 
 ```bash
-curl -s https://raw.githubusercontent.com/justncodes/pfsense-vpn-self-service/main/bootstrap.sh | bash
+curl -s https://raw.githubusercontent.com/justncodes/pfsense-vpn-self-service/main/install.sh | bash
 ```
 
 Or if you prefer to download the script first:
 
 ```bash
-curl -s https://raw.githubusercontent.com/justncodes/pfsense-vpn-self-service/main/bootstrap.sh -o bootstrap.sh && chmod +x bootstrap.sh && ./bootstrap.sh
+curl -s https://raw.githubusercontent.com/justncodes/pfsense-vpn-self-service/main/install.sh -o install.sh && chmod +x install.sh && ./install.sh
 ```
 
 ## Windows (PowerShell)
 
 ```powershell
-Invoke-WebRequest -Uri https://raw.githubusercontent.com/justncodes/pfsense-vpn-self-service/main/bootstrap.sh -OutFile bootstrap.sh
-bash bootstrap.sh
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/justncodes/pfsense-vpn-self-service/main/install.sh -OutFile install.sh
+bash install.sh
 ```
 
 Note: This requires Git Bash or WSL to be installed on Windows.

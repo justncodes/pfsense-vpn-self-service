@@ -29,8 +29,8 @@ cd vpn-self-service-portal
 
 2. Run the setup script:
 ```bash
-chmod +x setup.sh
-./setup.sh
+chmod +x install.sh
+./install.sh
 ```
 
 This will:
@@ -92,7 +92,7 @@ services:
       - PFSENSE_API_KEY=your-api-key
       - PFSENSE_API_SECRET=your-api-secret
       - SERVER_PUBLIC_KEY=your-server-public-key
-      - SERVER_ENDPOINT=sovpfsense.yourdomain.com:51820
+      - SERVER_ENDPOINT=pfsense.yourdomain.com:51820
       - DEMO_USER=demo
       - DEMO_PASSWORD=password
       - FLASK_SECRET_KEY=your-secure-secret-key
